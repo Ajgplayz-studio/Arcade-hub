@@ -22,42 +22,16 @@
                 <div class="card-content">
                     <h2>Web Minecraft</h2>
                     <p>Classic block-building survival right in your browser. Mine, craft, and explore!</p>
-                    <button class="play-btn" onclick="openGameModal()">Play Now</button>
+                    <a href="https://ajgplayz-studio.github.io/Arcade-hub/minecraft.html" class="play-btn">Play Now</a>
                 </div>
             </div>
 
         </section>
     </main>
 
-    <div id="gameModal" class="modal">
-        <div class="modal-content">
-            <span class="close-btn" onclick="closeGameModal()">&times;</span>
-            <h2>Web Minecraft</h2>
-            <div class="game-container">
-                <iframe src="https://eaglercraft-archive.github.io/Koneclient-1.8-web/" title="Minecraft Web Version" allowfullscreen></iframe>
-            </div>
-        </div>
-    </div>
-
     <footer>
         <p>&copy; 2026 Arcade Hub. Hosted on GitHub Pages.</p>
     </footer>
-
-    <script>
-        function openGameModal() {
-            document.getElementById('gameModal').style.display = 'flex';
-        }
-        function closeGameModal() {
-            document.getElementById('gameModal').style.display = 'none';
-        }
-        // Close modal when clicking outside of it
-        window.onclick = function(event) {
-            let modal = document.getElementById('gameModal');
-            if (event.target == modal) {
-                modal.style.display = "none";
-            }
-        }
-    </script>
 
 </body>
 </html>
