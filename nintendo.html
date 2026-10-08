@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nintendo OS</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            user-select: none;
+        }
+
+        body {
+            background-color: #121212;
+            color: #ffffff;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Top Status Bar */
+        .status-bar {
+            height: 40px;
+            background-color: rgba(0, 0, 0, 0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 30px;
+            font-size: 14px;
+            color: #b0b0b0;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .avatar {
+            width: 28px;
+            height: 28px;
+            background: #e60012;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            color: white;
+            font-size: 12px;
+        }
+
+        /* Main Home Screen */
+        .home-container {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .app-grid {
+            display: flex;
+            gap: 25px;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .app-icon {
+            width: 110px;
+            height: 110px;
+            background-color: #2b2b2b;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: transform 0.2s, background-color 0.2s, border 0.2s;
+            border: 3px solid transparent;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+
+        .app-icon:hover, .app-icon.selected {
+            transform: scale(1.08);
+            background-color: #383838;
+            border-color: #e60012;
+        }
+
+        .app-icon span {
+            margin-top: 10px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+        }
+
+        .app-icon .icon-symbol {
+            font-size: 36px;
+        }
+
+        /* App View Windows */
+        .app-view {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #1a1a1a;
+            display: none;
+            flex-direction: column;
+            z-index: 10;
+        }
+
+        .app-header {
+            height: 60px;
+            background-color: #242424;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 25px;
+            border-bottom: 2px solid #333;
+        }
+
+        .back-btn {
+            background: #e60012;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+
+        .back-btn:hover {
+            background: #ff1a2b;
+        }
+
+        .app-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Codes App Specific UI */
+        .codes-box {
+            background: #2b2b2b;
+            padding: 40px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            max-width: 400px;
+            width: 100%;
+        }
+
+        .codes-box h2 {
+            margin-bottom: 10px;
+            font-size: 22px;
+        }
+
+        .codes-box p {
+            color: #aaa;
+            font-size: 14px;
+            margin-bottom: 25px;
+        }
+
+        .code-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 24px;
+            text-align: center;
+            letter-spacing: 8px;
+            background: #1a1a1a;
+            border: 2px solid #444;
+            color: white;
+            border-radius: 10px;
+            outline: none;
+            margin-bottom: 20px;
+        }
+
+        .code-input:focus {
+            border-color: #e60012;
+        }
+
+        .submit-code-btn {
+            width: 100%;
+            padding: 12px;
+            background: #e60012;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .submit-code-btn:hover {
+            background: #ff1a2b;
+        }
+
+        .message {
+            margin-top: 15px;
+            font-size: 14px;
+            font-weight: bold;
+            min-height: 20px;
+        }
+
+        /* Arcade Hub Embed UI */
+        .arcade-frame {
+            width: 100%;
+            height: 100%;
+            border: none;
+            background: #ffffff;
+        }
+
+        /* Notification Popup */
+        .notification {
+            position: fixed;
+            bottom: -80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #242424;
+            border: 2px solid #e60012;
+            padding: 15px 30px;
+            border-radius: 12px;
+            box-align: center;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
+            transition: bottom 0.4s ease-in-out;
+            z-index: 100;
+        }
+
+        .notification.show {
+            bottom: 30px;
+        }
+
+        .notification-icon {
+            font-size: 24px;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Status Bar -->
+    <div class="status-bar">
+        <div class="user-profile">
+            <div class="avatar">N</div>
+            <span>Player</span>
+        </div>
+        <div id="clock">10:18 PM</div>
+    </div>
+
+    <!-- Home Screen -->
+    <div class="home-container" id="homeScreen">
+        <div class="app-grid" id="appGrid">
+            <!-- Codes App (Always Present) -->
+            <div class="app-icon" onclick="openApp('codesApp')">
+                <span class="icon-symbol">🔑</span>
+                <span>Codes</span>
+            </div>
+            <!-- Arcade Hub (Hidden by default) -->
+            <div class="app-icon" id="arcadeAppIcon" style="display: none;" onclick="openApp('arcadeHubApp')">
+                <span class="icon-symbol">🕹️</span>
+                <span>Arcade Hub</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Codes App View -->
+    <div class="app-view" id="codesApp">
+        <div class="app-header">
+            <h2>Codes App</h2>
+            <button class="back-btn" onclick="closeApp()">Home</button>
+        </div>
+        <div class="app-content">
+            <div class="codes-box">
+                <h2>Secret Code Entry</h2>
+                <p>Type the 4-digit code to unlock hidden content.</p>
+                <input type="password" id="codeInputField" class="code-input" maxlength="4" placeholder="••••">
+                <button class="submit-code-btn" onclick="checkCode()">Submit Code</button>
+                <div class="message" id="codeMessage"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Arcade Hub App View -->
+    <div class="app-view" id="arcadeHubApp">
+        <div class="app-header">
+            <h2>Arcade Hub</h2>
+            <button class="back-btn" onclick="closeApp()">Home</button>
+        </div>
+        <div class="app-content" style="padding: 0;">
+            <iframe class="arcade-frame" src="https://tinyurl.com/Arcade-hub"></iframe>
+        </div>
+    </div>
+
+    <!-- Unlock Notification -->
+    <div class="notification" id="unlockNotification">
+        <span class="notification-icon">🎉</span>
+        <div>
+            <div style="font-weight: bold; font-size: 14px;">New App Unlocked!</div>
+            <div style="font-size: 12px; color: #aaa;">Arcade Hub has been added to your home screen.</div>
+        </div>
+    </div>
+
+    <script>
+        // Real-time clock update
+        function updateClock() {
+            const now = new Date();
+            let hours = now.getHours();
+            const minutes = now.getMinutes().toString().padStart(2, '0');
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            document.getElementById('clock').innerText = `${hours}:${minutes} ${ampm}`;
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        let arcadeUnlocked = false;
+
+        // Navigation controls
+        function openApp(appId) {
+            document.getElementById('homeScreen').style.display = 'none';
+            document.getElementById(appId).style.display = 'flex';
+        }
+
+        function closeApp() {
+            document.querySelectorAll('.app-view').forEach(view => {
+                view.style.display = 'none';
+            });
+            document.getElementById('homeScreen').style.display = 'flex';
+        }
+
+        // Check secret code logic
+        function checkCode() {
+            const inputVal = document.getElementById('codeInputField').value;
+            const msg = document.getElementById('codeMessage');
+
+            if (inputVal === "1423") {
+                msg.style.color = "#4CD137";
+                msg.innerText = "Access Granted!";
+                
+                if (!arcadeUnlocked) {
+                    arcadeUnlocked = true;
+                    document.getElementById('arcadeAppIcon').style.display = 'flex';
+                    showNotification();
+                }
+
+                setTimeout(() => {
+                    closeApp();
+                    document.getElementById('codeInputField').value = "";
+                    msg.innerText = "";
+                }, 1200);
+            } else {
+                msg.style.color = "#e60012";
+                msg.innerText = "Incorrect Code. Try again.";
+            }
+        }
+
+        // Trigger notification popup
+        function showNotification() {
+            const notif = document.getElementById('unlockNotification');
+            notif.classList.add('show');
+            setTimeout(() => {
+                notif.classList.remove('show');
+            }, 4000);
+        }
+
+        // Allow pressing 'Enter' to submit code
+        document.getElementById('codeInputField').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                checkCode();
+            }
+        });
+    </script>
+</body>
+</html>
