@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Minecraft Clone in Browser</title>
+    <!-- Tailwind CSS for UI styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Three.js library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- PointerLockControls for first-person camera look -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/PointerLockControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #050505;
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 8px;
+            height: 8px;
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            pointer-events: none;
+            mix-blend-mode: difference;
+            z-index: 20;
+        }
+        .hotbar-slot {
+            transition: all 0.1s ease-in-out;
+        }
+        .hotbar-slot.active {
+            border-color: #facc15 !important;
+            transform: scale(1.08);
+            background-color: rgba(250, 204, 21, 0.15);
+        }
+    </style>
+</head>
+<body class="relative w-screen h-screen">
+
+    <!-- Crosshair -->
+    <div id="crosshair"></div>
+
+    <!-- Main Title Screen / World Menu -->
+    <div id="main-menu" class="absolute inset-0 bg-stone-900/95 backdrop-blur-md flex flex-col items-center justify-center text-white z-50">
+        <div class="bg-stone-950/90 border-4 border-stone-800 p-8 rounded-3xl shadow-2xl max-w-md w-full text-center space-y-6">
+            <h1 class="text-4xl font-extrabold text-amber-400 tracking-wider">BROWSER CRAFT</h1>
+            <p class="text-stone-400 text-sm">Infinite Voxel Sandbox with Chunks & Seeds</p>
+            
+            <div class="space-y-4 text-left">
+                <div>
+                    <label class="block text-xs font-bold text-stone-300 uppercase mb-1">World Type</label>
+                    <select id="world-type" class="w-full bg-stone-800 border border-stone-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-amber-500 cursor-pointer">
+                        <option value="default">Default (Hills & Trees)</option>
+                        <option value="flat">Flat World</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold text-stone-300 uppercase mb-1">World Seed</label>
+                    <input type="text" id="world-seed" value="minecraft" class="w-full bg-stone-800 border border-stone-700 rounded-xl px-4 py-2 text-white focus:outline-none focus:border-amber-500" placeholder="Enter seed...">
+                </div>
+            </div>
+
+            <div class="space-y-3 pt-2">
+                <button id="play-btn" class="w-full py-3.5 bg-amber-500 hover:bg-amber-400 text-stone-950 font-extrabold text-lg rounded-xl shadow-lg transition transform hover:-translate-y-0.5 cursor-pointer">
+                    CREATE / PLAY WORLD
+                </button>
+                <button id="load-world-btn" class="w-full py-3 bg-stone-800 hover:bg-stone-700 text-amber-400 font-bold rounded-xl shadow transition cursor-pointer">
+                    📂 Load World (.mine)
+                </button>
+                <button id="settings-btn" class="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold rounded-xl shadow transition cursor-pointer">
+                    ⚙️ Settings & Controls
+                </button>
+            </div>
+            <!-- Hidden file input for loading .mine files -->
+            <input type="file" id="import-file-input" accept=".mine" class="hidden">
+        </div>
+    </div>
+
+    <!-- Settings & Controls Modal -->
+    <div id="settings-modal" class="absolute inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center text-white z-50 hidden">
+        <div class="bg-stone-900 border-2 border-stone-700 p-8 rounded-3xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-6">
+            <h2 class="text-2xl font-bold text-amber-400 text-center">Settings & Controls</h2>
+            
+            <!-- General Settings -->
+            <div class="space-y-4 bg-stone-950/60 p-4 rounded-2xl border border-stone-800">
+                <h3 class="text-sm font-bold text-stone-300 uppercase tracking-wider">Preferences</h3>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-stone-300">Render Distance (Chunks)</span>
+                    <select id="setting-render-dist" class="bg-stone-800 border border-stone-700 rounded-lg px-3 py-1 text-white text-sm cursor-pointer">
+                        <option value="1">1 Chunk</option>
+                        <option value="2">2 Chunks</option>
+                        <option value="3">3 Chunks</option>
+                        <option value="4">4 Chunks</option>
+                    </select>
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-stone-300">VSync (Cap FPS to Display)</span>
+                    <input type="checkbox" id="setting-vsync" checked class="w-5 h-5 accent-amber-500 rounded cursor-pointer">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-stone-300">Show Coordinates</span>
+                    <input type="checkbox" id="setting-show-coords" checked class="w-5 h-5 accent-amber-500 rounded cursor-pointer">
+                </div>
+                <div class="flex items-center justify-between">
+                    <span class="text-sm text-stone-300">Show FPS Counter</span>
+                    <input type="checkbox" id="setting-show-fps" checked class="w-5 h-5 accent-amber-500 rounded cursor-pointer">
+                </div>
+            </div>
+
+            <!-- Keybinds Configuration -->
+            <div class="space-y-3 bg-stone-950/60 p-4 rounded-2xl border border-stone-800">
+                <h3 class="text-sm font-bold text-stone-300 uppercase tracking-wider">Controls Mapping (Click to rebind)</h3>
+                <div id="keybinds-list" class="space-y-2 text-sm">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+
+            <button id="close-settings-btn" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-xl shadow transition cursor-pointer">
+                Back
+            </button>
+        </div>
+    </div>
+
+    <!-- In-Game Pause Menu -->
+    <div id="pause-menu" class="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center text-white z-40 hidden">
+        <div class="bg-stone-900 border-2 border-stone-700 p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center space-y-4">
+            <h2 class="text-2xl font-bold text-amber-400">Game Paused</h2>
+            <button id="resume-btn" class="w-full py-3 bg-amber-500 hover:bg-amber-400 text-stone-950 font-bold rounded-xl shadow cursor-pointer">Resume Game</button>
+            <button id="save-world-btn" class="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl shadow cursor-pointer">💾 Save World (.mine)</button>
+            <button id="pause-settings-btn" class="w-full py-3 bg-stone-800 hover:bg-stone-700 text-stone-200 font-bold rounded-xl shadow cursor-pointer">⚙️ Settings & Controls</button>
+            <button id="quit-btn" class="w-full py-3 bg-red-600 hover:bg-red-500 text-white font-bold rounded-xl shadow cursor-pointer">Save & Quit to Title</button>
+        </div>
+    </div>
+
+    <!-- Hotbar UI -->
+    <div class="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex gap-2 bg-stone-900/80 backdrop-blur-md p-2 rounded-2xl border-2 border-stone-700/80 shadow-2xl z-30 hidden" id="hotbar">
+        <!-- Hotbar slots populated dynamically via JS -->
+    </div>
+
+    <!-- HUD / Debug Info -->
+    <div id="hud" class="absolute top-4 left-4 text-white font-mono text-xs bg-black/40 backdrop-blur-sm p-3 rounded-xl border border-white/10 pointer-events-none z-30 space-y-1 hidden">
+        <div id="hud-coords">XYZ: <span id="coords">0, 0, 0</span></div>
+        <div id="hud-fps">FPS: <span id="fps">60</span></div>
+        <div>Active Chunks: <span id="chunk-count">0</span></div>
+    </div>
+
+    <script>
+        const BLOCK_TYPES = {
+            1: { name: 'Dirt', color: 0x866043, roughness: 0.9 },
+            2: { name: 'Stone', color: 0x7a7a7a, roughness: 0.8 },
+            3: { name: 'Wood', color: 0x5c4033, roughness: 0.85 },
+            4: { name: 'Leaves', color: 0x3b7a57, roughness: 0.9, transparent: true, opacity: 0.85 },
+            5: { name: 'Glass', color: 0xaaccff, roughness: 0.1, transparent: true, opacity: 0.35 },
+            6: { name: 'Gold', color: 0xffd700, metalness: 0.9, roughness: 0.2 },
+            7: { name: 'Brick', color: 0xa84334, roughness: 0.7 },
+            8: { name: 'Grass', color: 0x559536, roughness: 0.85 }
+        };
+
+        const CHUNK_SIZE = 16;
+        const BLOCK_SIZE = 1;
+
+        let settings = {
+            renderDistance: 1,
+            vsync: true,
+            showCoords: true,
+            showFps: true,
+            keybinds: {
+                forward: 'KeyW',
+                backward: 'KeyS',
+                left: 'KeyA',
+                right: 'KeyD',
+                jump: 'Space',
+                mine: 'KeyU',
+                place: 'KeyP'
+            }
+        };
+
+        let currentWorldConfig = { type: 'default', seed: 'minecraft' };
+        let customLoadedWorldData = null;
+        let bindingKeyAction = null;
+
+        let scene, camera, renderer, controls;
+        let activeChunks = new Map();
+        let activeParticles = [];
+        let isGameStarted = false;
+        let isPaused = false;
+        let selectedBlockType = 8;
+        let highlightHelper = null;
+
+        const player = {
+            height: 1.6,
+            radius: 0.35,
+            velocity: new THREE.Vector3(),
+            speed: 5.5,
+            jumpForce: 7.2,
+            gravity: 24,
+            canJump: false
+        };
+
+        const inputState = { forward: false, backward: false, left: false, right: false };
+        let clock = new THREE.Clock();
+        let frameCount = 0, lastTime = 0, fps = 60;
+        let lastChunkCheckX = null, lastChunkCheckZ = null;
+
+        const boxGeometry = new THREE.BoxGeometry(BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE);
+        const materials = {};
+
+        function initMaterials() {
+            for (let id in BLOCK_TYPES) {
+                const def = BLOCK_TYPES[id];
+                materials[id] = new THREE.MeshStandardMaterial({
+                    color: def.color,
+                    roughness: def.roughness !== undefined ? def.roughness : 0.7,
+                    metalness: def.metalness !== undefined ? def.metalness : 0.0,
+                    transparent: def.transparent || false,
+                    opacity: def.opacity || 1.0
+                });
+            }
+        }
+
+        window.addEventListener('DOMContentLoaded', () => {
+            try {
+                initMaterials();
+                setupMenuUI();
+                setupSettingsUI();
+            } catch (err) {
+                console.error("Initialization error:", err);
+                alert("Error starting game interface: " + err.message);
+            }
+        });
+
+        function setupMenuUI() {
+            const playBtn = document.getElementById('play-btn');
+            const loadWorldBtn = document.getElementById('load-world-btn');
+            const importFileInput = document.getElementById('import-file-input');
+            const settingsBtn = document.getElementById('settings-btn');
+            const pauseSettingsBtn = document.getElementById('pause-settings-btn');
+            const closeSettingsBtn = document.getElementById('close-settings-btn');
+            const resumeBtn = document.getElementById('resume-btn');
+            const saveWorldBtn = document.getElementById('save-world-btn');
+            const quitBtn = document.getElementById('quit-btn');
+
+            playBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                currentWorldConfig.type = document.getElementById('world-type').value;
+                currentWorldConfig.seed = document.getElementById('world-seed').value || 'minecraft';
+                customLoadedWorldData = null;
+                launchGame();
+            });
+
+            loadWorldBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                importFileInput.click();
+            });
+
+            importFileInput.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    try {
+                        const worldData = JSON.parse(event.target.result);
+                        currentWorldConfig.type = worldData.config.type;
+                        currentWorldConfig.seed = worldData.config.seed;
+                        document.getElementById('world-type').value = currentWorldConfig.type;
+                        document.getElementById('world-seed').value = currentWorldConfig.seed;
+
+                        customLoadedWorldData = worldData;
+                        launchGame();
+                        if (worldData.playerPos) {
+                            camera.position.set(worldData.playerPos.x, worldData.playerPos.y, worldData.playerPos.z);
+                        }
+                    } catch (err) {
+                        alert('Failed to load world file. Invalid format.');
+                    }
+                };
+                reader.readAsText(file);
+            });
+
+            settingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('settings-modal').classList.remove('hidden');
+            });
+
+            pauseSettingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('pause-menu').classList.add('hidden');
+                document.getElementById('settings-modal').classList.remove('hidden');
+            });
+
+            closeSettingsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('settings-modal').classList.add('hidden');
+                
+                if (isGameStarted) {
+                    isPaused = false;
+                    if (controls) controls.lock();
+                }
+            });
+
+            resumeBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.getElementById('pause-menu').classList.add('hidden');
+                isPaused = false;
+                if (controls) controls.lock();
+            });
+
+            saveWorldBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                saveWorldToFile();
+            });
+
+            quitBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                location.reload();
+            });
+        }
+
+        function launchGame() {
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('hotbar').style.display = 'flex';
+            document.getElementById('hud').style.display = 'block';
+            startGame();
+        }
+
+        function saveWorldToFile() {
+            const savedChunks = {};
+            for (let [chunkKey, chunk] of activeChunks.entries()) {
+                const blockObj = {};
+                for (let [bKey, typeId] of chunk.blocks.entries()) {
+                    blockObj[bKey] = typeId;
+                }
+                savedChunks[chunkKey] = blockObj;
+            }
+
+            const worldData = {
+                config: currentWorldConfig,
+                playerPos: { x: camera.position.x, y: camera.position.y, z: camera.position.z },
+                chunks: savedChunks
+            };
+
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(worldData));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", `world_${currentWorldConfig.seed}.mine`);
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+        }
+
+        function setupSettingsUI() {
+            const renderDistSelect = document.getElementById('setting-render-dist');
+            const vsyncCheck = document.getElementById('setting-vsync');
+            const showCoordsCheck = document.getElementById('setting-show-coords');
+            const showFpsCheck = document.getElementById('setting-show-fps');
+
+            renderDistSelect.value = settings.renderDistance;
+            renderDistSelect.addEventListener('change', (e) => {
+                settings.renderDistance = parseInt(e.target.value);
+                if (isGameStarted) updateWorldChunks();
+            });
+
+            vsyncCheck.checked = settings.vsync;
+            vsyncCheck.addEventListener('change', (e) => {
+                settings.vsync = e.target.checked;
+            });
+
+            showCoordsCheck.checked = settings.showCoords;
+            showCoordsCheck.addEventListener('change', (e) => {
+                settings.showCoords = e.target.checked;
+                document.getElementById('hud-coords').style.display = settings.showCoords ? 'block' : 'none';
+            });
+
+            showFpsCheck.checked = settings.showFps;
+            showFpsCheck.addEventListener('change', (e) => {
+                settings.showFps = e.target.checked;
+                document.getElementById('hud-fps').style.display = settings.showFps ? 'block' : 'none';
+            });
+
+            buildKeybindsList();
+        }
+
+        function buildKeybindsList() {
+            const container = document.getElementById('keybinds-list');
+            container.innerHTML = '';
+
+            const actionLabels = {
+                forward: 'Move Forward',
+                backward: 'Move Backward',
+                left: 'Move Left',
+                right: 'Move Right',
+                jump: 'Jump',
+                mine: 'Mine / Break Block',
+                place: 'Place Block'
+            };
+
+            for (let action in settings.keybinds) {
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between bg-stone-900 px-3 py-2 rounded-xl border border-stone-800';
+
+                const label = document.createElement('span');
+                label.className = 'text-stone-300';
+                label.textContent = actionLabels[action] || action;
+
+                const btn = document.createElement('button');
+                btn.className = 'bg-stone-800 hover:bg-stone-700 text-amber-400 font-mono px-3 py-1 rounded-lg border border-stone-700 transition cursor-pointer';
+                btn.textContent = formatKeyName(settings.keybinds[action]);
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    btn.textContent = 'Press any key or click...';
+                    bindingKeyAction = action;
+                });
+
+                row.appendChild(label);
+                row.appendChild(btn);
+                container.appendChild(row);
+            }
+        }
+
+        function formatKeyName(code) {
+            if (code.startsWith('Key')) return code.replace('Key', '');
+            if (code === 'Space') return 'SPACE';
+            if (code.startsWith('Mouse')) return code.replace('Mouse', 'MB ');
+            return code;
+        }
+
+        window.addEventListener('keydown', (e) => {
+            if (bindingKeyAction) {
+                settings.keybinds[bindingKeyAction] = e.code;
+                bindingKeyAction = null;
+                buildKeybindsList();
+                e.preventDefault();
+                return;
+            }
+
+            // Arrow key hotbar switching (Left/Right)
+            if (e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
+                const keys = Object.keys(BLOCK_TYPES);
+                let currentIndex = keys.indexOf(selectedBlockType.toString());
+                if (e.code === 'ArrowRight') {
+                    currentIndex = (currentIndex + 1) % keys.length;
+                } else {
+                    currentIndex = (currentIndex - 1 + keys.length) % keys.length;
+                }
+                selectHotbarSlot(currentIndex);
+                e.preventDefault();
+                return;
+            }
+
+            if (!isGameStarted || isPaused) return;
+
+            if (e.code === settings.keybinds.forward) inputState.forward = true;
+            if (e.code === settings.keybinds.backward) inputState.backward = true;
+            if (e.code === settings.keybinds.left) inputState.left = true;
+            if (e.code === settings.keybinds.right) inputState.right = true;
+            
+            if (e.code === settings.keybinds.jump) {
+                if (player.canJump) {
+                    player.velocity.y = player.jumpForce;
+                    player.canJump = false;
+                }
+            }
+
+            if (e.code === settings.keybinds.mine) {
+                performAction('mine');
+            }
+            if (e.code === settings.keybinds.place) {
+                performAction('place');
+            }
+
+            if (e.code.startsWith('Digit')) {
+                const idx = parseInt(e.code.replace('Digit', '')) - 1;
+                selectHotbarSlot(idx);
+            }
+        });
+
+        window.addEventListener('keyup', (e) => {
+            if (e.code === settings.keybinds.forward) inputState.forward = false;
+            if (e.code === settings.keybinds.backward) inputState.backward = false;
+            if (e.code === settings.keybinds.left) inputState.left = false;
+            if (e.code === settings.keybinds.right) inputState.right = false;
+        });
+
+        window.addEventListener('wheel', (e) => {
+            if (!isGameStarted || isPaused) return;
+            const keys = Object.keys(BLOCK_TYPES);
+            let currentIndex = keys.indexOf(selectedBlockType.toString());
+            if (e.deltaY > 0) currentIndex = (currentIndex + 1) % keys.length;
+            else currentIndex = (currentIndex - 1 + keys.length) % keys.length;
+            selectHotbarSlot(currentIndex);
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            if (bindingKeyAction) {
+                settings.keybinds[bindingKeyAction] = `Mouse${e.button}`;
+                bindingKeyAction = null;
+                buildKeybindsList();
+                e.preventDefault();
+                return;
+            }
+
+            if (!isGameStarted || isPaused || controls.isLocked !== true) return;
+
+            const btnCode = `Mouse${e.button}`;
+            if (settings.keybinds.mine === btnCode) {
+                performAction('mine');
+            }
+            if (settings.keybinds.place === btnCode) {
+                performAction('place');
+            }
+        });
+
+        function getTargetIntersection() {
+            let allMeshes = [];
+            for (let chunk of activeChunks.values()) {
+                for (let mesh of chunk.meshes.values()) {
+                    allMeshes.push(mesh);
+                }
+            }
+
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(new THREE.Vector2(0, 0), camera);
+            const intersects = raycaster.intersectObjects(allMeshes);
+
+            if (intersects.length > 0) {
+                const intersect = intersects[0];
+                if (intersect.distance <= 8) return intersect;
+            }
+            return null;
+        }
+
+        function performAction(actionType) {
+            const intersect = getTargetIntersection();
+            if (!intersect) return;
+
+            if (actionType === 'mine') {
+                removeBlock(intersect.object);
+                updateHighlight();
+            } else if (actionType === 'place') {
+                const normal = intersect.face.normal;
+                const hitPos = intersect.object.position.clone();
+                const newPos = hitPos.add(normal);
+
+                const tx = Math.round(newPos.x / BLOCK_SIZE);
+                const ty = Math.round(newPos.y / BLOCK_SIZE);
+                const tz = Math.round(newPos.z / BLOCK_SIZE);
+
+                const pPos = camera.position;
+                if (!(Math.abs(tx - pPos.x) < 0.6 && Math.abs(tz - pPos.z) < 0.6 && pPos.y - ty > -1.7 && pPos.y - ty < 0.2)) {
+                    placeBlock(tx, ty, tz, selectedBlockType);
+                    updateHighlight();
+                }
+            }
+        }
+
+        window.addEventListener('contextmenu', e => e.preventDefault());
+
+        function spawnMiningParticles(pos, blockTypeId) {
+            const blockDef = BLOCK_TYPES[blockTypeId] || { color: 0x888888 };
+            const particleGeo = new THREE.BoxGeometry(0.12, 0.12, 0.12);
+            const particleMat = new THREE.MeshBasicMaterial({ color: blockDef.color });
+
+            for (let i = 0; i < 8; i++) {
+                const pMesh = new THREE.Mesh(particleGeo, particleMat);
+                pMesh.position.copy(pos);
+                pMesh.position.add(new THREE.Vector3(
+                    (Math.random() - 0.5) * 0.6,
+                    (Math.random() - 0.5) * 0.6,
+                    (Math.random() - 0.5) * 0.6
+                ));
+
+                const velocity = new THREE.Vector3(
+                    (Math.random() - 0.5) * 4,
+                    Math.random() * 5 + 2,
+                    (Math.random() - 0.5) * 4
+                );
+
+                scene.add(pMesh);
+                activeParticles.push({ mesh: pMesh, velocity, life: 0.4 });
+            }
+        }
+
+        function removeBlock(mesh) {
+            const { bx, by, bz, chunkKey } = mesh.userData;
+            const chunk = activeChunks.get(chunkKey);
+            if (!chunk) return;
+
+            const blockTypeId = chunk.blocks.get(`${bx},${by},${bz}`) || 2;
+            spawnMiningParticles(mesh.position, blockTypeId);
+
+            scene.remove(mesh);
+            mesh.geometry.dispose();
+            chunk.meshes.delete(`${bx},${by},${bz}`);
+            chunk.blocks.delete(`${bx},${by},${bz}`);
+        }
+
+        function placeBlock(x, y, z, typeId) {
+            const cx = Math.floor(x / CHUNK_SIZE);
+            const cz = Math.floor(z / CHUNK_SIZE);
+            const chunkKey = `${cx},${cz}`;
+
+            if (!activeChunks.has(chunkKey)) {
+                loadChunk(cx, cz);
+            }
+
+            const chunk = activeChunks.get(chunkKey);
+            if (!chunk) return;
+
+            const bKey = `${x},${y},${z}`;
+            if (chunk.blocks.has(bKey)) return;
+
+            chunk.blocks.set(bKey, typeId);
+            const mesh = new THREE.Mesh(boxGeometry, materials[typeId]);
+            mesh.position.set(x * BLOCK_SIZE, y * BLOCK_SIZE, z * BLOCK_SIZE);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            mesh.userData = { bx: x, by: y, bz: z, chunkKey };
+
+            scene.add(mesh);
+            chunk.meshes.set(bKey, mesh);
+        }
+
+        function buildHotbarUI() {
+            const hotbarEl = document.getElementById('hotbar');
+            hotbarEl.innerHTML = '';
+            let i = 0;
+            for (let id in BLOCK_TYPES) {
+                i++;
+                const def = BLOCK_TYPES[id];
+                const slot = document.createElement('div');
+                slot.className = `hotbar-slot relative w-12 h-12 rounded-xl border-2 border-stone-700 bg-stone-800/90 flex items-center justify-center cursor-pointer shadow-inner ${id == selectedBlockType ? 'active' : ''}`;
+                
+                const swatch = document.createElement('div');
+                swatch.className = 'w-7 h-7 rounded-lg shadow-md';
+                swatch.style.backgroundColor = '#' + def.color.toString(16).padStart(6, '0');
+                slot.appendChild(swatch);
+
+                const badge = document.createElement('span');
+                badge.className = 'absolute top-1 left-1.5 text-[10px] font-bold text-stone-300 pointer-events-none';
+                badge.textContent = i;
+                slot.appendChild(badge);
+
+                slot.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    selectHotbarSlot(i - 1);
+                });
+                hotbarEl.appendChild(slot);
+            }
+        }
+
+        function selectHotbarSlot(index) {
+            const keys = Object.keys(BLOCK_TYPES);
+            if (index < 0 || index >= keys.length) return;
+            selectedBlockType = parseInt(keys[index]);
+            document.querySelectorAll('.hotbar-slot').forEach((s, idx) => {
+                if (idx === index) s.classList.add('active');
+                else s.classList.remove('active');
+            });
+        }
+
+        function startGame() {
+            if (scene) {
+                isGameStarted = true;
+                isPaused = false;
+                try { controls.lock(); } catch (err) {}
+                updateWorldChunks();
+                return;
+            }
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0x87ceeb);
+            scene.fog = new THREE.FogExp2(0x87ceeb, 0.018);
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 20, 0);
+
+            renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            const outlineGeo = new THREE.BoxGeometry(1.002, 1.002, 1.002);
+            const outlineMat = new THREE.MeshBasicMaterial({ color: 0x000000, wireframe: true });
+            highlightHelper = new THREE.Mesh(outlineGeo, outlineMat);
+            highlightHelper.visible = false;
+            scene.add(highlightHelper);
+
+            controls = new THREE.PointerLockControls(camera, renderer.domElement);
+            
+            controls.addEventListener('unlock', () => {
+                if (isGameStarted && !isPaused) {
+                    isPaused = true;
+                    document.getElementById('pause-menu').classList.remove('hidden');
+                }
+            });
+
+            renderer.domElement.addEventListener('click', () => {
+                if (isGameStarted && !isPaused && controls && !controls.isLocked) {
+                    controls.lock();
+                }
+            });
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.55);
+            scene.add(ambientLight);
+
+            const sunLight = new THREE.DirectionalLight(0xfffaed, 0.85);
+            sunLight.position.set(40, 60, 30);
+            sunLight.castShadow = true;
+            scene.add(sunLight);
+
+            buildHotbarUI();
+
+            if (!customLoadedWorldData) {
+                const spawnHeight = getTerrainHeight(0, 0) + 3;
+                camera.position.set(0, spawnHeight, 0);
+            }
+
+            isGameStarted = true;
+            try { controls.lock(); } catch (err) {}
+
+            updateWorldChunks();
+            requestAnimationFrame(animate);
+        }
+
+        function updateHighlight() {
+            if (!highlightHelper) return;
+            const intersect = getTargetIntersection();
+            if (intersect) {
+                highlightHelper.position.copy(intersect.object.position);
+                highlightHelper.visible = true;
+            } else {
+                highlightHelper.visible = false;
+            }
+        }
+
+        function pseudoRandom(seedStr, x, z) {
+            let hash = 0;
+            const str = seedStr + "_" + x + "_" + z;
+            for (let i = 0; i < str.length; i++) {
+                hash = ((hash << 5) - hash) + str.charCodeAt(i);
+                hash |= 0;
+            }
+            return Math.abs(Math.sin(hash)) * 10000 % 1;
+        }
+
+        function getTerrainHeight(x, z) {
+            if (currentWorldConfig.type === 'flat') return 3;
+            let h = Math.sin(x * 0.15) * Math.cos(z * 0.15) * 3 + 6;
+            return Math.floor(h);
+        }
+
+        function generateChunkBlocks(cx, cz) {
+            const chunkKey = `${cx},${cz}`;
+            const blocks = new Map();
+
+            if (customLoadedWorldData && customLoadedWorldData.chunks && customLoadedWorldData.chunks[chunkKey]) {
+                const savedBlockObj = customLoadedWorldData.chunks[chunkKey];
+                for (let bKey in savedBlockObj) {
+                    blocks.set(bKey, savedBlockObj[bKey]);
+                }
+                return blocks;
+            }
+
+            const startX = cx * CHUNK_SIZE;
+            const startZ = cz * CHUNK_SIZE;
+
+            for (let x = 0; x < CHUNK_SIZE; x++) {
+                for (let z = 0; z < CHUNK_SIZE; z++) {
+                    const wx = startX + x;
+                    const wz = startZ + z;
+                    const surfaceHeight = getTerrainHeight(wx, wz);
+
+                    for (let y = 0; y <= surfaceHeight; y++) {
+                        let blockId = 2;
+                        if (y === surfaceHeight) {
+                            blockId = 8;
+                        } else if (y > surfaceHeight - 3) {
+                            blockId = 1;
+                        }
+                        blocks.set(`${wx},${y},${wz}`, blockId);
+                    }
+
+                    if (currentWorldConfig.type === 'default' && surfaceHeight >= 4) {
+                        if (pseudoRandom(currentWorldConfig.seed, wx, wz) < 0.035 && (Math.abs(wx) > 2 || Math.abs(wz) > 2)) {
+                            generateTreeBlocks(wx, surfaceHeight + 1, wz, blocks);
+                        }
+                    }
+                }
+            }
+            return blocks;
+        }
+
+        function generateTreeBlocks(startX, startY, startZ, blocks) {
+            const trunkHeight = 4;
+            for (let y = 0; y < trunkHeight; y++) {
+                blocks.set(`${startX},${startY + y},${startZ}`, 3);
+            }
+            const leafStart = startY + trunkHeight - 2;
+            for (let ly = 0; ly < 3; ly++) {
+                let radius = ly === 2 ? 1 : 2;
+                for (let lx = -radius; lx <= radius; lx++) {
+                    for (let lz = -radius; lz <= radius; lz++) {
+                        if (lx === 0 && lz === 0 && ly < 2) continue;
+                        if (Math.abs(lx) === radius && Math.abs(lz) === radius && ly === 2) continue;
+                        blocks.set(`${startX + lx},${leafStart + ly},${startZ + lz}`, 4);
+                    }
+                }
+            }
+        }
+
+        function updateWorldChunks() {
+            const playerChunkX = Math.floor(camera.position.x / CHUNK_SIZE);
+            const playerChunkZ = Math.floor(camera.position.z / CHUNK_SIZE);
+
+            if (playerChunkX === lastChunkCheckX && playerChunkZ === lastChunkCheckZ && activeChunks.size > 0) return;
+            lastChunkCheckX = playerChunkX;
+            lastChunkCheckZ = playerChunkZ;
+
+            const neededChunks = new Set();
+            const rad = settings.renderDistance;
+
+            for (let x = -rad; x <= rad; x++) {
+                for (let z = -rad; z <= rad; z++) {
+                    neededChunks.add(`${playerChunkX + x},${playerChunkZ + z}`);
+                }
+            }
+
+            for (let [chunkKey, chunkData] of activeChunks.entries()) {
+                if (!neededChunks.has(chunkKey)) {
+                    for (let [bKey, mesh] of chunkData.meshes.entries()) {
+                        scene.remove(mesh);
+                        mesh.geometry.dispose();
+                    }
+                    activeChunks.delete(chunkKey);
+                }
+            }
+
+            for (let chunkKey of neededChunks) {
+                if (!activeChunks.has(chunkKey)) {
+                    const [cx, cz] = chunkKey.split(',').map(Number);
+                    loadChunk(cx, cz);
+                }
+            }
+
+            document.getElementById('chunk-count').textContent = activeChunks.size;
+        }
+
+        function loadChunk(cx, cz) {
+            const chunkKey = `${cx},${cz}`;
+            const baseBlocks = generateChunkBlocks(cx, cz);
+
+            const chunkData = {
+                meshes: new Map(),
+                blocks: baseBlocks
+            };
+
+            for (let [bKey, typeId] of chunkData.blocks.entries()) {
+                const [bx, by, bz] = bKey.split(',').map(Number);
+                const mesh = new THREE.Mesh(boxGeometry, materials[typeId]);
+                mesh.position.set(bx * BLOCK_SIZE, by * BLOCK_SIZE, bz * BLOCK_SIZE);
+                mesh.castShadow = true;
+                mesh.receiveShadow = true;
+                mesh.userData = { bx, by, bz, chunkKey };
+
+                scene.add(mesh);
+                chunkData.meshes.set(bKey, mesh);
+            }
+
+            activeChunks.set(chunkKey, chunkData);
+        }
+
+        function checkCollision(pos) {
+            const px = pos.x;
+            const py = pos.y;
+            const pz = pos.z;
+
+            const minX = Math.floor(px - player.radius);
+            const maxX = Math.floor(px + player.radius);
+            const minY = Math.floor(py - player.height);
+            const maxY = Math.floor(py - 0.05);
+            const minZ = Math.floor(pz - player.radius);
+            const maxZ = Math.floor(pz + player.radius);
+
+            for (let x = minX; x <= maxX; x++) {
+                for (let y = minY; y <= maxY; y++) {
+                    for (let z = minZ; z <= maxZ; z++) {
+                        const cx = Math.floor(x / CHUNK_SIZE);
+                        const cz = Math.floor(z / CHUNK_SIZE);
+                        const chunk = activeChunks.get(`${cx},${cz}`);
+                        if (chunk && chunk.blocks.has(`${x},${y},${z}`)) {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
+        function updatePhysics(delta) {
+            player.velocity.y -= player.gravity * delta;
+
+            const forwardVector = new THREE.Vector3();
+            camera.getWorldDirection(forwardVector);
+            forwardVector.y = 0;
+            forwardVector.normalize();
+
+            const sideVector = new THREE.Vector3();
+            sideVector.crossVectors(camera.up, forwardVector).normalize();
+
+            const moveDir = new THREE.Vector3();
+            if (inputState.forward) moveDir.add(forwardVector);
+            if (inputState.backward) moveDir.sub(forwardVector);
+            if (inputState.right) moveDir.add(sideVector);
+            if (inputState.left) moveDir.sub(sideVector);
+            moveDir.normalize();
+
+            const speed = player.speed;
+
+            if (moveDir.length() > 0) {
+                camera.position.x += moveDir.x * speed * delta;
+                if (checkCollision(camera.position)) {
+                    camera.position.y += 0.6;
+                    if (!checkCollision(camera.position)) {
+                        player.canJump = true;
+                    } else {
+                        camera.position.y -= 0.6;
+                        camera.position.x -= moveDir.x * speed * delta;
+                    }
+                }
+
+                camera.position.z += moveDir.z * speed * delta;
+                if (checkCollision(camera.position)) {
+                    camera.position.y += 0.6;
+                    if (!checkCollision(camera.position)) {
+                        player.canJump = true;
+                    } else {
+                        camera.position.y -= 0.6;
+                        camera.position.z -= moveDir.z * speed * delta;
+                    }
+                }
+            }
+
+            camera.position.y += player.velocity.y * delta;
+            if (checkCollision(camera.position)) {
+                if (player.velocity.y < 0) {
+                    player.canJump = true;
+                    const feetY = camera.position.y - player.height;
+                    camera.position.y = Math.floor(feetY) + 1.0001 + player.height;
+                } else {
+                    camera.position.y = Math.floor(camera.position.y) - 0.01;
+                }
+                player.velocity.y = 0;
+            } else {
+                player.canJump = false;
+            }
+
+            if (camera.position.y < -30) {
+                camera.position.set(0, getTerrainHeight(0, 0) + 4, 0);
+                player.velocity.set(0, 0, 0);
+            }
+        }
+
+        function animate() {
+            if (settings.vsync) {
+                requestAnimationFrame(animate);
+            } else {
+                setTimeout(() => requestAnimationFrame(animate), 0);
+            }
+
+            const delta = Math.min(clock.getDelta(), 0.1);
+
+            if (isGameStarted && !isPaused) {
+                updatePhysics(delta);
+                updateWorldChunks();
+                updateHighlight();
+
+                // Update particle animations
+                for (let i = activeParticles.length - 1; i >= 0; i--) {
+                    const p = activeParticles[i];
+                    p.life -= delta;
+                    if (p.life <= 0) {
+                        scene.remove(p.mesh);
+                        p.mesh.geometry.dispose();
+                        activeParticles.splice(i, 1);
+                    } else {
+                        p.velocity.y -= 15 * delta;
+                        p.mesh.position.addScaledVector(p.velocity, delta);
+                        p.mesh.scale.multiplyScalar(0.92);
+                    }
+                }
+            }
+
+            frameCount++;
+            const currentTime = performance.now();
+            if (currentTime - lastTime >= 1000) {
+                fps = Math.round((frameCount * 1000) / (currentTime - lastTime));
+                document.getElementById('fps').textContent = fps;
+                frameCount = 0;
+                lastTime = currentTime;
+
+                document.getElementById('coords').textContent = 
+                    `${Math.floor(camera.position.x)}, ${Math.floor(camera.position.y - player.height)}, ${Math.floor(camera.position.z)}`;
+            }
+
+            renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
