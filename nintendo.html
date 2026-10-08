@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Nintendo OS</title>
+    <title>Nintendo Switch OS</title>
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             user-select: none;
         }
 
@@ -22,27 +22,29 @@
             overflow: hidden;
         }
 
-        /* Top Status Bar */
+        /* Top Status Bar (Switch Style) */
         .status-bar {
-            height: 40px;
-            background-color: rgba(0, 0, 0, 0.3);
+            height: 48px;
+            background-color: #121212;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 0 30px;
-            font-size: 14px;
-            color: #b0b0b0;
+            padding: 0 40px;
+            font-size: 15px;
+            color: #dcdcdc;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
         }
 
         .user-profile {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
+            cursor: pointer;
         }
 
         .avatar {
-            width: 28px;
-            height: 28px;
+            width: 34px;
+            height: 34px;
             background: #e60012;
             border-radius: 50%;
             display: flex;
@@ -50,10 +52,19 @@
             justify-content: center;
             font-weight: bold;
             color: white;
-            font-size: 12px;
+            font-size: 14px;
+            box-shadow: 0 2px 6px rgba(230,0,18,0.4);
         }
 
-        /* Main Home Screen */
+        .status-icons {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            font-size: 14px;
+            color: #aaa;
+        }
+
+        /* Main Home Screen (Switch Layout) */
         .home-container {
             flex: 1;
             display: flex;
@@ -61,47 +72,99 @@
             justify-content: center;
             align-items: center;
             padding: 20px;
-            transition: all 0.3s ease;
+            position: relative;
         }
 
+        /* Switch App Grid Ribbon */
         .app-grid {
             display: flex;
-            gap: 25px;
+            gap: 22px;
             justify-content: center;
             align-items: center;
             flex-wrap: wrap;
+            max-width: 900px;
         }
 
+        /* Authentic Switch Tile Style */
         .app-icon {
-            width: 110px;
-            height: 110px;
+            width: 140px;
+            height: 140px;
             background-color: #2b2b2b;
-            border-radius: 20px;
+            border-radius: 12px;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
             cursor: pointer;
-            transition: transform 0.2s, background-color 0.2s, border 0.2s;
-            border: 3px solid transparent;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+            transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease;
+            border: 4px solid #2b2b2b;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+            position: relative;
         }
 
-        .app-icon:hover, .app-icon.selected {
-            transform: scale(1.08);
-            background-color: #383838;
-            border-color: #e60012;
+        .app-icon:hover {
+            transform: translateY(-6px) scale(1.03);
+            background-color: #353535;
+            border-color: #ffffff;
+        }
+
+        .app-icon.selected {
+            transform: translateY(-6px) scale(1.03);
+            border-color: #ffffff;
+        }
+
+        .app-icon .icon-graphic {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 38px;
+            border-radius: 10px;
+            background: #1e1e1e;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.4);
         }
 
         .app-icon span {
             margin-top: 10px;
             font-size: 13px;
-            font-weight: 600;
-            letter-spacing: 0.5px;
+            font-weight: 500;
+            color: #d1d1d1;
+            letter-spacing: 0.3px;
+            text-align: center;
+            width: 100%;
+            padding: 0 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .app-icon .icon-symbol {
-            font-size: 36px;
+        /* Switch Footer / Controller Hint Bar */
+        .switch-footer {
+            height: 60px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 40px;
+            background-color: #121212;
+            color: #888;
+            font-size: 13px;
+        }
+
+        .footer-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .footer-btn {
+            background: #333;
+            color: #fff;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 11px;
+            border: 1px solid #444;
         }
 
         /* App View Windows */
@@ -123,7 +186,7 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0 25px;
+            padding: 0 30px;
             border-bottom: 2px solid #333;
         }
 
@@ -131,12 +194,15 @@
             background: #e60012;
             color: white;
             border: none;
-            padding: 8px 16px;
+            padding: 8px 18px;
             border-radius: 8px;
             cursor: pointer;
             font-weight: bold;
             font-size: 13px;
             transition: background 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
 
         .back-btn:hover {
@@ -154,34 +220,36 @@
 
         /* Codes App Specific UI */
         .codes-box {
-            background: #2b2b2b;
+            background: #242424;
             padding: 40px;
-            border-radius: 20px;
+            border-radius: 16px;
             text-align: center;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            max-width: 400px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.6);
+            max-width: 420px;
             width: 100%;
+            border: 1px solid #333;
         }
 
         .codes-box h2 {
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             font-size: 22px;
+            font-weight: 600;
         }
 
         .codes-box p {
-            color: #aaa;
-            font-size: 14px;
-            margin-bottom: 25px;
+            color: #999;
+            font-size: 13px;
+            margin-bottom: 24px;
         }
 
         .code-input {
             width: 100%;
             padding: 14px;
-            font-size: 24px;
+            font-size: 26px;
             text-align: center;
-            letter-spacing: 8px;
-            background: #1a1a1a;
-            border: 2px solid #444;
+            letter-spacing: 10px;
+            background: #141414;
+            border: 2px solid #3b3b3b;
             color: white;
             border-radius: 10px;
             outline: none;
@@ -199,7 +267,7 @@
             color: white;
             border: none;
             border-radius: 10px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: bold;
             cursor: pointer;
             transition: background 0.2s;
@@ -216,39 +284,40 @@
             min-height: 20px;
         }
 
-        /* Wave OS Embed UI */
-        .arcade-frame {
+        /* Galaxy OS Embed UI */
+        .galaxy-frame {
             width: 100%;
             height: 100%;
             border: none;
             background: #ffffff;
         }
 
-        /* Notification Popup */
+        /* Switch Notification Popup */
         .notification {
             position: fixed;
-            bottom: -80px;
+            top: -100px;
             left: 50%;
             transform: translateX(-50%);
             background: #242424;
-            border: 2px solid #e60012;
-            padding: 15px 30px;
-            border-radius: 12px;
-            box-align: center;
+            border: 2px solid #3b3b3b;
+            border-top: 4px solid #e60012;
+            padding: 14px 24px;
+            border-radius: 10px;
             display: flex;
             align-items: center;
             gap: 15px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.6);
-            transition: bottom 0.4s ease-in-out;
+            box-shadow: 0 12px 30px rgba(0,0,0,0.7);
+            transition: top 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             z-index: 100;
+            min-width: 340px;
         }
 
         .notification.show {
-            bottom: 30px;
+            top: 60px;
         }
 
         .notification-icon {
-            font-size: 24px;
+            font-size: 26px;
         }
     </style>
 </head>
@@ -258,9 +327,13 @@
     <div class="status-bar">
         <div class="user-profile">
             <div class="avatar">N</div>
-            <span>Player</span>
+            <span style="font-weight: 500;">Player</span>
         </div>
-        <div id="clock">10:18 PM</div>
+        <div class="status-icons">
+            <span>Wi-Fi</span>
+            <span>🔋 100%</span>
+            <div id="clock" style="font-weight: 500; min-width: 65px; text-align: right;">10:18 PM</div>
+        </div>
     </div>
 
     <!-- Home Screen -->
@@ -268,27 +341,34 @@
         <div class="app-grid" id="appGrid">
             <!-- Codes App (Always Present) -->
             <div class="app-icon" onclick="openApp('codesApp')">
-                <span class="icon-symbol">🔑</span>
+                <div class="icon-graphic" style="color: #ffcc00;">🔑</div>
                 <span>Codes</span>
             </div>
-            <!-- Wave OS (Hidden by default) -->
-            <div class="app-icon" id="waveAppIcon" style="display: none;" onclick="openApp('waveOsApp')">
-                <span class="icon-symbol">🌊</span>
-                <span>Wave OS</span>
+            <!-- Galaxy OS (Hidden by default) -->
+            <div class="app-icon" id="galaxyAppIcon" style="display: none;" onclick="openApp('galaxyOsApp')">
+                <div class="icon-graphic" style="color: #00d2ff;">🌌</div>
+                <span>Galaxy OS</span>
             </div>
         </div>
+    </div>
+
+    <!-- Switch Footer Helper Bar -->
+    <div class="switch-footer">
+        <div class="footer-item"><span class="footer-btn">A</span> Select</div>
+        <div class="footer-item"><span class="footer-btn">+= -</span> Options</div>
+        <div class="footer-item"><span class="footer-btn">HOME</span> Back to Home</div>
     </div>
 
     <!-- Codes App View -->
     <div class="app-view" id="codesApp">
         <div class="app-header">
-            <h2>Codes App</h2>
-            <button class="back-btn" onclick="closeApp()">Home</button>
+            <h2 style="font-size: 18px; font-weight: 600;">Codes App</h2>
+            <button class="back-btn" onclick="closeApp()"><span>◀</span> Back</button>
         </div>
         <div class="app-content">
             <div class="codes-box">
                 <h2>Secret Code Entry</h2>
-                <p>Type the 4-digit code to unlock hidden content.</p>
+                <p>Enter the 4-digit code to unlock Galaxy OS.</p>
                 <input type="password" id="codeInputField" class="code-input" maxlength="4" placeholder="••••">
                 <button class="submit-code-btn" onclick="checkCode()">Submit Code</button>
                 <div class="message" id="codeMessage"></div>
@@ -296,23 +376,23 @@
         </div>
     </div>
 
-    <!-- Wave OS App View -->
-    <div class="app-view" id="waveOsApp">
+    <!-- Galaxy OS App View -->
+    <div class="app-view" id="galaxyOsApp">
         <div class="app-header">
-            <h2>Wave OS</h2>
-            <button class="back-btn" onclick="closeApp()">Home</button>
+            <h2 style="font-size: 18px; font-weight: 600;">Galaxy OS</h2>
+            <button class="back-btn" onclick="closeApp()"><span>◀</span> Back</button>
         </div>
         <div class="app-content" style="padding: 0;">
-            <iframe class="arcade-frame" src="https://ajgplayz-studio.github.io/ajg-domains/wave"></iframe>
+            <iframe class="galaxy-frame" src="https://ajgplayz-studio.github.io/ajg-domains/wave"></iframe>
         </div>
     </div>
 
     <!-- Unlock Notification -->
     <div class="notification" id="unlockNotification">
-        <span class="notification-icon">🎉</span>
+        <span class="notification-icon">✨</span>
         <div>
-            <div style="font-weight: bold; font-size: 14px;">New App Unlocked!</div>
-            <div style="font-size: 12px; color: #aaa;">Wave OS has been added to your home screen.</div>
+            <div style="font-weight: bold; font-size: 13px; color: #fff;">Software Added</div>
+            <div style="font-size: 12px; color: #aaa; margin-top: 2px;">Galaxy OS is now available on the HOME Menu.</div>
         </div>
     </div>
 
@@ -329,7 +409,7 @@
         setInterval(updateClock, 1000);
         updateClock();
 
-        let waveUnlocked = false;
+        let galaxyUnlocked = false;
 
         // Navigation controls
         function openApp(appId) {
@@ -353,9 +433,9 @@
                 msg.style.color = "#4CD137";
                 msg.innerText = "Access Granted!";
                 
-                if (!waveUnlocked) {
-                    waveUnlocked = true;
-                    document.getElementById('waveAppIcon').style.display = 'flex';
+                if (!galaxyUnlocked) {
+                    galaxyUnlocked = true;
+                    document.getElementById('galaxyAppIcon').style.display = 'flex';
                     showNotification();
                 }
 
@@ -370,13 +450,13 @@
             }
         }
 
-        // Trigger notification popup
+        // Trigger Nintendo Switch style top notification popup
         function showNotification() {
             const notif = document.getElementById('unlockNotification');
             notif.classList.add('show');
             setTimeout(() => {
                 notif.classList.remove('show');
-            }, 4000);
+            }, 4500);
         }
 
         // Allow pressing 'Enter' to submit code
